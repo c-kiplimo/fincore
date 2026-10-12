@@ -1,0 +1,59 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: ledger
+          uri: ${LEDGER_URL:http://localhost:8081}
+          predicates:
+            - Path=/v1/entities/**,/v1/transactions/**,/v1/consolidation
+        - id: pricing
+          uri: ${PRICING_URL:http://localhost:8082}
+          predicates:
+            - Path=/v1/quotes/**,/v1/fee-plans/**,/v1/tax-rules/**,/v1/fx-rates/**,/v1/interest/**
+        - id: payments
+          uri: ${PAYMENTS_URL:http://localhost:8083}
+          predicates:
+            - Path=/v1/payment-intents/**,/v1/disputes/**,/v1/settlements/**
+        - id: accounts
+          uri: ${ACCOUNTS_URL:http://localhost:8084}
+          predicates:
+            - Path=/v1/merchants/**,/v1/reserves/**,/v1/individuals/**,/v1/wallets/**,/v1/transfers/**,/v1/conversions/**,/v1/wallet-payments/**,/v1/merchant-disbursements/**
+        - id: payouts
+          uri: ${PAYOUTS_URL:http://localhost:8085}
+          predicates:
+            - Path=/v1/payouts/**
+        - id: lending
+          uri: ${LENDING_URL:http://localhost:8086}
+          predicates:
+            - Path=/v1/loan-products/**,/v1/loans/**,/v1/lending-jobs/**,/v1/recovery-cases/**
+        - id: reconciliation
+          uri: ${RECONCILIATION_URL:http://localhost:8087}
+          predicates:
+            - Path=/v1/reconciliation-runs/**,/v1/statement-lines/**,/v1/safeguarding/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI:http://localhost:8180/realms/platform}
+
+gateway:
+  security:
+    enabled: ${GATEWAY_SECURITY_ENABLED:false}
+  rate-limit:
+    requests-per-second: ${RATE_LIMIT_RPS:50}
+  api-version: ${DEFAULT_API_VERSION:2026-10-01}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gateway
+  endpoint:
+    health:
+      probes:
+        enabled: true
