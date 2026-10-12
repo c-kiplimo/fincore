@@ -1,0 +1,136 @@
+# Local development: the whole platform on one machine.
+#   docker compose up --build
+# Gateway: http://localhost:8080   (every /v1 API goes through it)
+
+x-service-env: &service-env
+  DB_USER: platform
+  DB_PASSWORD: platform
+  KAFKA_BOOTSTRAP: kafka:9092
+  LEDGER_GRPC_TARGET: ledger-service:9091
+  LEDGER_URL: http://ledger-service:8081
+  PRICING_URL: http://pricing-service:8082
+  ACCOUNTS_URL: http://accounts-service:8084
+  SIMULATOR_URL: http://rails-simulator:8089
+
+x-java-service: &java-service
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+    kafka:
+      condition: service_started
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: platform
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U platform"]
+      interval: 5s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.8.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 3
+    ports: ["29092:29092"]
+
+  rails-simulator:
+    build: { context: ., dockerfile: rails-simulator/Dockerfile }
+    restart: unless-stopped
+    ports: ["8089:8089"]
+
+  ledger-service:
+    <<: *java-service
+    build: { context: ., dockerfile: ledger-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/ledger_db
+    ports: ["8081:8081", "9091:9091"]
+
+  pricing-service:
+    <<: *java-service
+    build: { context: ., dockerfile: pricing-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/pricing_db
+    ports: ["8082:8082"]
+
+  payments-service:
+    <<: *java-service
+    build: { context: ., dockerfile: payments-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/payments_db
+    ports: ["8083:8083"]
+
+  accounts-service:
+    <<: *java-service
+    build: { context: ., dockerfile: accounts-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/accounts_db
+    ports: ["8084:8084"]
+
+  payouts-service:
+    <<: *java-service
+    build: { context: ., dockerfile: payouts-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/payouts_db
+    ports: ["8085:8085"]
+
+  lending-service:
+    <<: *java-service
+    build: { context: ., dockerfile: lending-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/lending_db
+    ports: ["8086:8086"]
+
+  reconciliation-service:
+    <<: *java-service
+    build: { context: ., dockerfile: reconciliation-service/Dockerfile }
+    environment:
+      <<: *service-env
+      DB_URL: jdbc:postgresql://postgres:5432/reconciliation_db
+      # Optional Spring AI explainer:
+      # AI_CHAT_MODEL_PROVIDER: openai
+      # OPENAI_API_KEY: sk-...
+    ports: ["8087:8087"]
+
+  api-gateway:
+    build: { context: ., dockerfile: api-gateway/Dockerfile }
+    restart: unless-stopped
+    environment:
+      LEDGER_URL: http://ledger-service:8081
+      PRICING_URL: http://pricing-service:8082
+      PAYMENTS_URL: http://payments-service:8083
+      ACCOUNTS_URL: http://accounts-service:8084
+      PAYOUTS_URL: http://payouts-service:8085
+      LENDING_URL: http://lending-service:8086
+      RECONCILIATION_URL: http://reconciliation-service:8087
+    ports: ["8080:8080"]
+    depends_on: [ledger-service, pricing-service, payments-service, accounts-service, payouts-service, lending-service, reconciliation-service]
+
+volumes:
+  pgdata:

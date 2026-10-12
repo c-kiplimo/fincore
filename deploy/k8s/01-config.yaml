@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: fincore
+data:
+  KAFKA_BOOTSTRAP: kafka:9092
+  LEDGER_GRPC_TARGET: ledger-service:9091
+  LEDGER_URL: http://ledger-service:8081
+  PRICING_URL: http://pricing-service:8082
+  PAYMENTS_URL: http://payments-service:8083
+  ACCOUNTS_URL: http://accounts-service:8084
+  PAYOUTS_URL: http://payouts-service:8085
+  LENDING_URL: http://lending-service:8086
+  RECONCILIATION_URL: http://reconciliation-service:8087
+  SIMULATOR_URL: http://rails-simulator:8089
+  GATEWAY_SECURITY_ENABLED: "false"
+  # JWT_ISSUER_URI: https://keycloak.example.com/realms/platform
+---
+# Change these before deploying. Better: create the secret out-of-band (kubectl create secret ...) or use
+# Sealed Secrets / External Secrets so passwords never live in Git.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-db
+  namespace: fincore
+type: Opaque
+stringData:
+  DB_USER: platform
+  DB_PASSWORD: change-me
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: platform-ai
+  namespace: fincore
+type: Opaque
+stringData:
+  AI_CHAT_MODEL_PROVIDER: none      # set to "openai" to enable the Spring AI explainer
+  OPENAI_API_KEY: not-set

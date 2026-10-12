@@ -1,0 +1,19 @@
+# Exposes only the gateway. Change the host and ingressClassName to match your cluster (nginx, traefik, ...).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-gateway
+  namespace: fincore
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: payments.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 8080

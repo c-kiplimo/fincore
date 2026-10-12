@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reconciliation-service
+  namespace: fincore
+  labels: { app: reconciliation-service }
+spec:
+  selector: { app: reconciliation-service }
+  ports:
+    - { name: http, port: 8087, targetPort: 8087 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reconciliation-service
+  namespace: fincore
+  labels: { app: reconciliation-service, app.kubernetes.io/part-of: fincore }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: reconciliation-service }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: reconciliation-service }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8087"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: reconciliation-service
+          image: fincore/reconciliation-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8087 }
+          envFrom:
+            - configMapRef: { name: platform-config }
+            - secretRef: { name: platform-db }
+            - secretRef: { name: platform-ai }
+          env:
+            - { name: DB_URL, value: "jdbc:postgresql://postgres:5432/reconciliation_db" }
+            - { name: FLYWAY_ENABLED, value: "false" }   # migrations run in the Job below
+            - { name: SERVER_PORT, value: "8087" }
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+# Runs Flyway once, then exits (platform.migrate-only=true). Apply before rolling out a new version.
+# Jobs are immutable: delete the old one first (kubectl -n fincore delete job reconciliation-service-migrate).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reconciliation-service-migrate
+  namespace: fincore
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: migrate
+          image: fincore/reconciliation-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: platform-config }
+            - secretRef: { name: platform-db }
+          env:
+            - { name: DB_URL, value: "jdbc:postgresql://postgres:5432/reconciliation_db" }
+            - { name: FLYWAY_ENABLED, value: "true" }
+            - { name: LEDGER_GRPC_ENABLED, value: "false" }
+            - name: JAVA_OPTS
+              value: "-Dplatform.migrate-only=true -Dspring.main.web-application-type=none -Dplatform.outbox.relay-enabled=false -Dspring.kafka.listener.auto-startup=false -Dlending.jobs-enabled=false"

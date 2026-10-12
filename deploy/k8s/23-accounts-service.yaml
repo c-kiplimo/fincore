@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: accounts-service
+  namespace: fincore
+  labels: { app: accounts-service }
+spec:
+  selector: { app: accounts-service }
+  ports:
+    - { name: http, port: 8084, targetPort: 8084 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accounts-service
+  namespace: fincore
+  labels: { app: accounts-service, app.kubernetes.io/part-of: fincore }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: accounts-service }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: accounts-service }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: "8084"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: accounts-service
+          image: fincore/accounts-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - { name: http, containerPort: 8084 }
+          envFrom:
+            - configMapRef: { name: platform-config }
+            - secretRef: { name: platform-db }
+          env:
+            - { name: DB_URL, value: "jdbc:postgresql://postgres:5432/accounts_db" }
+            - { name: FLYWAY_ENABLED, value: "false" }   # migrations run in the Job below
+            - { name: SERVER_PORT, value: "8084" }
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - { name: tmp, emptyDir: {} }
+---
+# Runs Flyway once, then exits (platform.migrate-only=true). Apply before rolling out a new version.
+# Jobs are immutable: delete the old one first (kubectl -n fincore delete job accounts-service-migrate).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: accounts-service-migrate
+  namespace: fincore
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: migrate
+          image: fincore/accounts-service:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef: { name: platform-config }
+            - secretRef: { name: platform-db }
+          env:
+            - { name: DB_URL, value: "jdbc:postgresql://postgres:5432/accounts_db" }
+            - { name: FLYWAY_ENABLED, value: "true" }
+            - { name: LEDGER_GRPC_ENABLED, value: "false" }
+            - name: JAVA_OPTS
+              value: "-Dplatform.migrate-only=true -Dspring.main.web-application-type=none -Dplatform.outbox.relay-enabled=false -Dspring.kafka.listener.auto-startup=false -Dlending.jobs-enabled=false"

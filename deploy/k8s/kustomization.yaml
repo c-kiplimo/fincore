@@ -1,0 +1,47 @@
+# kubectl apply -k deploy/k8s
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - 01-config.yaml
+  - 10-postgres.yaml
+  - 11-kafka.yaml
+  - 20-ledger-service.yaml
+  - 21-pricing-service.yaml
+  - 22-payments-service.yaml
+  - 23-accounts-service.yaml
+  - 24-payouts-service.yaml
+  - 25-lending-service.yaml
+  - 26-reconciliation-service.yaml
+  - 27-rails-simulator.yaml
+  - 28-api-gateway.yaml
+  - 40-ingress.yaml
+  - 41-autoscaling.yaml
+images:
+  - name: fincore/ledger-service
+    newName: REGISTRY/fincore/ledger-service   # e.g. registry.example.com:5000/fincore/ledger-service
+    newTag: latest
+  - name: fincore/pricing-service
+    newName: REGISTRY/fincore/pricing-service   # e.g. registry.example.com:5000/fincore/pricing-service
+    newTag: latest
+  - name: fincore/payments-service
+    newName: REGISTRY/fincore/payments-service   # e.g. registry.example.com:5000/fincore/payments-service
+    newTag: latest
+  - name: fincore/accounts-service
+    newName: REGISTRY/fincore/accounts-service   # e.g. registry.example.com:5000/fincore/accounts-service
+    newTag: latest
+  - name: fincore/payouts-service
+    newName: REGISTRY/fincore/payouts-service   # e.g. registry.example.com:5000/fincore/payouts-service
+    newTag: latest
+  - name: fincore/lending-service
+    newName: REGISTRY/fincore/lending-service   # e.g. registry.example.com:5000/fincore/lending-service
+    newTag: latest
+  - name: fincore/reconciliation-service
+    newName: REGISTRY/fincore/reconciliation-service   # e.g. registry.example.com:5000/fincore/reconciliation-service
+    newTag: latest
+  - name: fincore/rails-simulator
+    newName: REGISTRY/fincore/rails-simulator   # e.g. registry.example.com:5000/fincore/rails-simulator
+    newTag: latest
+  - name: fincore/api-gateway
+    newName: REGISTRY/fincore/api-gateway   # e.g. registry.example.com:5000/fincore/api-gateway
+    newTag: latest
