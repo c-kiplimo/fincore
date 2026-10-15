@@ -1,4 +1,4 @@
-package com.collins.platform.gateway;
+package com.collins.platform.gateway.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

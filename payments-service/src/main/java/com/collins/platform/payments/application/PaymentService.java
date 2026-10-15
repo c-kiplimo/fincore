@@ -10,6 +10,10 @@ import com.collins.platform.commons.jdbc.Ids;
 import com.collins.platform.commons.outbox.OutboxPublisher;
 import com.collins.platform.ledger.client.LedgerClient;
 import com.collins.platform.ledger.client.Posting;
+import com.collins.platform.payments.api.dto.CreatePaymentRequest;
+import com.collins.platform.payments.api.dto.DisputeRequest;
+import com.collins.platform.payments.api.dto.RefundRequest;
+import com.collins.platform.payments.api.dto.SettlementRequest;
 import com.collins.platform.payments.domain.PaymentIntent;
 import com.collins.platform.payments.domain.PaymentStatus;
 import com.collins.platform.payments.infrastructure.PaymentRepository;
@@ -70,20 +74,20 @@ public class PaymentService {
     }
 
     /** Creates the intent and asks the network to authorize it. No money moves yet, so nothing is posted. */
-    public PaymentIntent create(String merchantId, long amountMinor, String currency, String method, String instrument, String description) {
-        AccountsClient.Merchant merchant = accounts.merchant(merchantId);
+    public PaymentIntent create(CreatePaymentRequest request) {
+        AccountsClient.Merchant merchant = accounts.merchant(request.merchantId());
         if (!"ACTIVE".equals(merchant.status())) {
-            throw new BusinessRuleException("MERCHANT_NOT_ACTIVE", "Merchant " + merchantId + " is not active");
+            throw new BusinessRuleException("MERCHANT_NOT_ACTIVE", "Merchant " + request.merchantId() + " is not active");
         }
-        if (!merchant.settlementCurrency().equals(currency)) {
+        if (!merchant.settlementCurrency().equals(request.currency())) {
             throw new BusinessRuleException("CURRENCY_NOT_SUPPORTED",
                     "This merchant accepts " + merchant.settlementCurrency() + "; convert first via a wallet FX conversion");
         }
         String id = Ids.newId("pi");
-        SimulatorClient.Authorization auth = network.authorize(id, amountMinor, currency, method, instrument);
+        SimulatorClient.Authorization auth = network.authorize(id, request.amountMinor(), request.currency(), request.method(), request.instrument());
         String status = "APPROVED".equals(auth.status()) ? PaymentStatus.AUTHORIZED.name() : PaymentStatus.DECLINED.name();
-        PaymentIntent intent = new PaymentIntent(id, merchant.entityId(), merchantId, amountMinor, currency, method, status,
-                auth.networkRef(), auth.reason(), 0, 0, 0, 0, 0, null, description, Instant.now(), Instant.now());
+        PaymentIntent intent = new PaymentIntent(id, merchant.entityId(), request.merchantId(), request.amountMinor(), request.currency(),
+                request.method(), status, auth.networkRef(), auth.reason(), 0, 0, 0, 0, 0, null, request.description(), Instant.now(), Instant.now());
         repo.insert(intent);
         return get(id);
     }
@@ -133,9 +137,9 @@ public class PaymentService {
      * Dr 2000 Merchant payable / Cr 1100 Settlement receivable. The platform keeps its fee.
      * The merchant balance may go negative; collections recovers it.
      */
-    public PaymentIntent refund(String paymentId, long amountMinor, String reason) {
+    public PaymentIntent refund(String paymentId, RefundRequest request) {
         PaymentIntent p = get(paymentId);
-        long amount = amountMinor <= 0 ? p.refundableMinor() : amountMinor;
+        long amount = request.amountMinor() <= 0 ? p.refundableMinor() : request.amountMinor();
         if (amount > p.refundableMinor()) {
             throw new BusinessRuleException("REFUND_TOO_LARGE", "Only " + p.refundableMinor() + " minor units can be refunded");
         }
@@ -149,7 +153,7 @@ public class PaymentService {
                 .credit("1100", amount, p.currency())).transactionId();
         tx.executeWithoutResult(s -> {
             repo.find(paymentId, true).orElseThrow();
-            repo.insertRefund(new Refund(refundId, paymentId, amount, reason, txnId));
+            repo.insertRefund(new Refund(refundId, paymentId, amount, request.reason(), txnId));
             repo.addRefunded(paymentId, amount, next.name());
             outbox.publish(Topics.PAYMENT_REFUNDED, p.merchantId(), "PaymentRefunded",
                     new PaymentRefunded(paymentId, p.entityId(), p.merchantId(), amount, p.currency()));
@@ -162,12 +166,12 @@ public class PaymentService {
      * 1) Dr 2000 Merchant payable (amount + fee) / Cr 2200 Disputed funds held / Cr 4200 Dispute fee revenue
      * 2) Dr 2200 Disputed funds held / Cr 1100 Settlement receivable
      */
-    public Dispute openDispute(String paymentId, String reason) {
+    public Dispute openDispute(String paymentId, DisputeRequest request) {
         PaymentIntent p = get(paymentId);
         p.state().moveTo(PaymentStatus.DISPUTED);
         long amount = p.refundableMinor();
         String disputeId = Ids.newId("dp");
-        network.chargeback(p.networkRef(), amount, reason);
+        network.chargeback(p.networkRef(), amount, request.reason());
         ledger.post(Posting.of(p.entityId(), "DISPUTE_OPENED", "dispute:" + disputeId + ":hold")
                 .description("Dispute " + disputeId + " on " + p.id()).reference("dispute", disputeId)
                 .debit("2000:" + p.merchantId(), amount + disputeFeeMinor, p.currency())
@@ -177,7 +181,7 @@ public class PaymentService {
                 .description("Network pulled disputed funds").reference("dispute", disputeId)
                 .debit("2200", amount, p.currency())
                 .credit("1100", amount, p.currency()));
-        Dispute dispute = new Dispute(disputeId, paymentId, amount, disputeFeeMinor, "OPEN", reason);
+        Dispute dispute = new Dispute(disputeId, paymentId, amount, disputeFeeMinor, "OPEN", request.reason());
         tx.executeWithoutResult(s -> {
             repo.insertDispute(dispute);
             repo.updateStatus(paymentId, PaymentStatus.DISPUTED.name());
@@ -216,31 +220,32 @@ public class PaymentService {
      * Dr 1000 Cash (net) / Dr 5000 Network fees / Cr 1100 Settlement receivable (gross).
      * The batch id is the reference reconciliation uses to match the bank statement.
      */
-    public SettlementResult settle(String entityId, String currency, LocalDate date) {
-        SimulatorClient.SettlementBatch batch = network.settle(currency, date == null ? LocalDate.now() : date);
+    public SettlementResult settle(SettlementRequest request) {
+        LocalDate date = request.date() != null ? request.date() : LocalDate.now();
+        SimulatorClient.SettlementBatch batch = network.settle(request.currency(), date);
         String txnId = null;
         if (!batch.lines().isEmpty()) {
-            Posting posting = Posting.of(entityId, "NETWORK_SETTLEMENT", "settlement:" + batch.batchId())
+            Posting posting = Posting.of(request.entityId(), "NETWORK_SETTLEMENT", "settlement:" + batch.batchId())
                     .description("Network settlement " + batch.batchId()).reference("settlement_batch", batch.batchId())
                     .effectiveDate(batch.date().toString());
             if (batch.netMinor() > 0) {
-                posting.debit("1000", batch.netMinor(), currency);
+                posting.debit("1000", batch.netMinor(), request.currency());
             } else if (batch.netMinor() < 0) {
-                posting.credit("1000", -batch.netMinor(), currency);
+                posting.credit("1000", -batch.netMinor(), request.currency());
             }
-            posting.debit("5000", batch.feesMinor(), currency);
+            posting.debit("5000", batch.feesMinor(), request.currency());
             if (batch.grossMinor() > 0) {
-                posting.credit("1100", batch.grossMinor(), currency);
+                posting.credit("1100", batch.grossMinor(), request.currency());
             } else if (batch.grossMinor() < 0) {
-                posting.debit("1100", -batch.grossMinor(), currency);
+                posting.debit("1100", -batch.grossMinor(), request.currency());
             }
             txnId = ledger.post(posting).transactionId();
         }
         String ledgerTxnId = txnId;
-        tx.executeWithoutResult(s -> repo.insertSettlement(batch.batchId(), entityId, currency, batch.date(), batch.grossMinor(),
-                batch.feesMinor(), batch.netMinor(), batch.lines().size(), ledgerTxnId));
-        return new SettlementResult(batch.batchId(), entityId, currency, batch.date(), batch.lines().size(), batch.grossMinor(),
-                batch.feesMinor(), batch.netMinor(), ledgerTxnId);
+        tx.executeWithoutResult(s -> repo.insertSettlement(batch.batchId(), request.entityId(), request.currency(), batch.date(),
+                batch.grossMinor(), batch.feesMinor(), batch.netMinor(), batch.lines().size(), ledgerTxnId));
+        return new SettlementResult(batch.batchId(), request.entityId(), request.currency(), batch.date(), batch.lines().size(),
+                batch.grossMinor(), batch.feesMinor(), batch.netMinor(), ledgerTxnId);
     }
 
     public PaymentIntent get(String paymentId) {
