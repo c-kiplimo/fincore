@@ -45,6 +45,7 @@ gateway:
   security:
     enabled: ${GATEWAY_SECURITY_ENABLED:false}
   rate-limit:
+    type: ${RATE_LIMIT_TYPE:memory}  # memory (default) or redis (production)
     requests-per-second: ${RATE_LIMIT_RPS:50}
   api-version: ${DEFAULT_API_VERSION:2026-10-01}
 
