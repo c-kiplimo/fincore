@@ -9,9 +9,9 @@
 
 ### Phase 2: Frontend Foundation ✅ COMPLETE
 **Shared Packages** (Production-Grade):
-- `@payments-platform/ui` - Ramp-inspired design system
-- `@payments-platform/types` - Complete TypeScript interfaces
-- `@payments-platform/api-client` - Typed HTTP client with JWT support
+- `@fincore/ui` - Ramp-inspired design system
+- `@fincore/types` - Complete TypeScript interfaces
+- `@fincore/api-client` - Typed HTTP client with JWT support
 
 ### Phase 3: Merchant Portal ✅ SCAFFOLD COMPLETE
 **Full Next.js 15 Application** (Port 3001):
@@ -162,9 +162,9 @@ cd frontend
 pnpm install
 
 # Build shared packages (first time only)
-pnpm --filter @payments-platform/ui build
-pnpm --filter @payments-platform/types build
-pnpm --filter @payments-platform/api-client build
+pnpm --filter @fincore/ui build
+pnpm --filter @fincore/types build
+pnpm --filter @fincore/api-client build
 
 # Run merchant portal
 pnpm --filter merchant-portal dev

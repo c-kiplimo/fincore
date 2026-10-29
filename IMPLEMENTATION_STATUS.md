@@ -35,7 +35,7 @@
 
 **Shared Packages** (Production-Grade):
 
-#### 1. `@payments-platform/ui` - Design System
+#### 1. `@fincore/ui` - Design System
 **Location**: `frontend/packages/ui/`
 
 **Features**:
@@ -59,7 +59,7 @@
 <Input label="Amount" error="Required" />
 ```
 
-#### 2. `@payments-platform/types` - Shared Types
+#### 2. `@fincore/types` - Shared Types
 **Location**: `frontend/packages/types/`
 
 **Features**:
@@ -76,7 +76,7 @@
 - `PaginatedResponse<T>` - API pagination
 - `ApiError`, `ApiResponse<T>` - Error handling
 
-#### 3. `@payments-platform/api-client` - API Client
+#### 3. `@fincore/api-client` - API Client
 **Location**: `frontend/packages/api-client/`
 
 **Features**:
@@ -230,9 +230,9 @@ cd frontend
 pnpm install
 
 # Build shared packages
-pnpm --filter @payments-platform/ui build
-pnpm --filter @payments-platform/types build
-pnpm --filter @payments-platform/api-client build
+pnpm --filter @fincore/ui build
+pnpm --filter @fincore/types build
+pnpm --filter @fincore/api-client build
 
 # Run all apps
 pnpm dev
