@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+// ledger.v1 is the one shared language for moving money on the platform (DDD: published language).
+// Messages follow the platform convention: requests carry a payload; responses carry meta + payload.
+package ledger.v1;
+
+option java_package = "com.collins.platform.ledger.grpc";
+option java_multiple_files = true;
+option java_outer_classname = "LedgerProto";
+
+service LedgerService {
+  // Posts a balanced transaction (or holds it as pending). Idempotent on payload.idempotency_key.
+  rpc PostTransaction (PostTransactionRequest) returns (TransactionResponse);
+  // Turns a pending transaction into a posted one.
+  rpc CommitPending (TransactionIdRequest) returns (TransactionResponse);
+  // Cancels a pending transaction; its effect on balances disappears.
+  rpc VoidPending (TransactionIdRequest) returns (TransactionResponse);
+  // Balance of one account (or of a base code and all its sub-accounts).
+  rpc GetBalance (GetBalanceRequest) returns (BalanceResponse);
+}
+
+message Meta {
+  string request_id = 1;
+  string timestamp = 2;
+  string status = 3;
+}
+
+message EntryLine {
+  string account = 1;          // e.g. "1100" or "2000:mer_123" (base code + optional sub-ledger key)
+  string direction = 2;        // "DEBIT" or "CREDIT"
+  int64 amount_minor = 3;      // whole minor units, always positive
+  string currency = 4;         // ISO 4217
+  bool enforce_non_negative = 5; // reject if this account's natural balance would go below zero
+}
+
+message PostTransactionPayload {
+  string idempotency_key = 1;
+  string entity_id = 2;        // legal entity whose books this is, e.g. "KE"
+  string transaction_type = 3; // e.g. "PAYMENT_CAPTURE"
+  string description = 4;
+  string effective_date = 5;   // ISO date; empty = today
+  string reference_type = 6;   // e.g. "payment_intent"
+  string reference_id = 7;
+  bool pending = 8;
+  repeated EntryLine entries = 9;
+  map<string, string> metadata = 10;
+}
+
+message PostTransactionRequest {
+  PostTransactionPayload payload = 1;
+}
+
+message TransactionIdPayload {
+  string transaction_id = 1;
+}
+
+message TransactionIdRequest {
+  TransactionIdPayload payload = 1;
+}
+
+message TransactionView {
+  string transaction_id = 1;
+  string entity_id = 2;
+  string status = 3;           // PENDING, POSTED, VOIDED
+  string transaction_type = 4;
+  string effective_date = 5;
+  repeated EntryLine entries = 6;
+}
+
+message TransactionResponse {
+  Meta meta = 1;
+  TransactionView payload = 2;
+}
+
+message GetBalancePayload {
+  string entity_id = 1;
+  string account = 2;
+  string currency = 3;
+}
+
+message GetBalanceRequest {
+  GetBalancePayload payload = 1;
+}
+
+message BalanceView {
+  string entity_id = 1;
+  string account = 2;
+  string currency = 3;
+  int64 posted_minor = 4;      // natural balance (positive = normal side) of posted entries
+  int64 pending_minor = 5;     // natural balance of pending entries
+  int64 available_minor = 6;   // posted + pending
+}
+
+message BalanceResponse {
+  Meta meta = 1;
+  BalanceView payload = 2;
+}

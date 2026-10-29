@@ -55,13 +55,13 @@ services:
     ports: ["29092:29092"]
 
   rails-simulator:
-    build: { context: ., dockerfile: rails-simulator/Dockerfile }
+    build: { context: ., dockerfile: backend/rails-simulator/Dockerfile }
     restart: unless-stopped
     ports: ["8089:8089"]
 
   ledger-service:
     <<: *java-service
-    build: { context: ., dockerfile: ledger-service/Dockerfile }
+    build: { context: ., dockerfile: backend/ledger-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/ledger_db
@@ -69,7 +69,7 @@ services:
 
   pricing-service:
     <<: *java-service
-    build: { context: ., dockerfile: pricing-service/Dockerfile }
+    build: { context: ., dockerfile: backend/pricing-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/pricing_db
@@ -77,7 +77,7 @@ services:
 
   payments-service:
     <<: *java-service
-    build: { context: ., dockerfile: payments-service/Dockerfile }
+    build: { context: ., dockerfile: backend/payments-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/payments_db
@@ -85,7 +85,7 @@ services:
 
   accounts-service:
     <<: *java-service
-    build: { context: ., dockerfile: accounts-service/Dockerfile }
+    build: { context: ., dockerfile: backend/accounts-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/accounts_db
@@ -93,7 +93,7 @@ services:
 
   payouts-service:
     <<: *java-service
-    build: { context: ., dockerfile: payouts-service/Dockerfile }
+    build: { context: ., dockerfile: backend/payouts-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/payouts_db
@@ -101,7 +101,7 @@ services:
 
   lending-service:
     <<: *java-service
-    build: { context: ., dockerfile: lending-service/Dockerfile }
+    build: { context: ., dockerfile: backend/lending-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/lending_db
@@ -109,7 +109,7 @@ services:
 
   reconciliation-service:
     <<: *java-service
-    build: { context: ., dockerfile: reconciliation-service/Dockerfile }
+    build: { context: ., dockerfile: backend/reconciliation-service/Dockerfile }
     environment:
       <<: *service-env
       DB_URL: jdbc:postgresql://postgres:5432/reconciliation_db
@@ -119,7 +119,7 @@ services:
     ports: ["8087:8087"]
 
   api-gateway:
-    build: { context: ., dockerfile: api-gateway/Dockerfile }
+    build: { context: ., dockerfile: backend/api-gateway/Dockerfile }
     restart: unless-stopped
     environment:
       LEDGER_URL: http://ledger-service:8081

@@ -19,17 +19,17 @@
     <description>Learning-grade multinational payments platform with a double-entry ledger</description>
 
     <modules>
-        <module>commons</module>
-        <module>ledger-api</module>
-        <module>ledger-service</module>
-        <module>pricing-service</module>
-        <module>payments-service</module>
-        <module>accounts-service</module>
-        <module>payouts-service</module>
-        <module>lending-service</module>
-        <module>reconciliation-service</module>
-        <module>rails-simulator</module>
-        <module>api-gateway</module>
+        <module>backend/commons</module>
+        <module>backend/ledger-api</module>
+        <module>backend/ledger-service</module>
+        <module>backend/pricing-service</module>
+        <module>backend/payments-service</module>
+        <module>backend/accounts-service</module>
+        <module>backend/payouts-service</module>
+        <module>backend/lending-service</module>
+        <module>backend/reconciliation-service</module>
+        <module>backend/rails-simulator</module>
+        <module>backend/api-gateway</module>
     </modules>
 
     <properties>
