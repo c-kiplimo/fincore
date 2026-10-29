@@ -24,9 +24,9 @@ Production-grade merchant dashboard for managing payments, payouts, and business
 - **TypeScript 5.7** - Type safety
 - **Tailwind CSS 3.4** - Styling
 - **Recharts 2.15** - Data visualization
-- **@payments-platform/ui** - Shared design system
-- **@payments-platform/api-client** - Typed API client
-- **@payments-platform/types** - Shared TypeScript types
+- **@fincore/ui** - Shared design system
+- **@fincore/api-client** - Typed API client
+- **@fincore/types** - Shared TypeScript types
 
 ## Getting Started
 
@@ -45,9 +45,9 @@ cd frontend
 pnpm install
 
 # Build shared packages
-pnpm --filter @payments-platform/ui build
-pnpm --filter @payments-platform/types build
-pnpm --filter @payments-platform/api-client build
+pnpm --filter @fincore/ui build
+pnpm --filter @fincore/types build
+pnpm --filter @fincore/api-client build
 ```
 
 ### Development
@@ -160,4 +160,4 @@ Uses Ramp-inspired design:
 
 ## Contributing
 
-This is part of the payments-platform monorepo. See root README for contribution guidelines.
+This is part of the fincore monorepo. See root README for contribution guidelines.

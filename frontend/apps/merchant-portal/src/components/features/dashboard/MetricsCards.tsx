@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@fincore/ui';
 
 export function MetricsCards() {
   // TODO: Fetch from API

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query';
-import type { PaymentIntent, CreatePaymentRequest, RefundRequest } from '@payments-platform/types';
+import type { PaymentIntent, CreatePaymentRequest, RefundRequest } from '@fincore/types';
 import type { PaymentsApi, ListPaymentsParams } from '../payments';
 
 /**

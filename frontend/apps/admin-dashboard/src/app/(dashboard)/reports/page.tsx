@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input } from '@fincore/ui';
 
 export default function ReportsPage() {
   const reportTypes = [

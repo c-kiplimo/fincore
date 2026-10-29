@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@fincore/ui';
 
 export default function DashboardPage() {
   // TODO: Fetch from API

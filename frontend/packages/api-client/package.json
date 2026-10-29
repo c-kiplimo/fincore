@@ -1,5 +1,5 @@
 {
-  "name": "@payments-platform/api-client",
+  "name": "@fincore/api-client",
   "version": "1.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -10,7 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@payments-platform/types": "workspace:*",
+    "@fincore/types": "workspace:*",
     "axios": "^1.7.9",
     "uuid": "^11.0.4"
   },

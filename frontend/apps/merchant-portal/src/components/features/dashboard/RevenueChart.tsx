@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@fincore/ui';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function RevenueChart() {

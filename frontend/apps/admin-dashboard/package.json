@@ -10,9 +10,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@payments-platform/api-client": "workspace:*",
-    "@payments-platform/types": "workspace:*",
-    "@payments-platform/ui": "workspace:*",
+    "@fincore/api-client": "workspace:*",
+    "@fincore/types": "workspace:*",
+    "@fincore/ui": "workspace:*",
     "@tanstack/react-query": "^5.62.7",
     "next": "^15.1.4",
     "next-auth": "^5.0.0-beta.25",

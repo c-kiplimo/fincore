@@ -1,4 +1,4 @@
-# Payments Platform - Complete Implementation Guide
+# FinCore - Complete Implementation Guide
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@
 
 ## Overview
 
-The Payments Platform is a production-grade, end-to-end fintech solution with:
+The FinCore is a production-grade, end-to-end fintech solution with:
 
 - **Backend**: 11 Spring Boot microservices with event-driven architecture
 - **Frontend**: 3 professional UIs (Admin Dashboard, Merchant Portal, Customer App)
@@ -131,7 +131,7 @@ The Payments Platform is a production-grade, end-to-end fintech solution with:
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd payments-platform
+cd fincore
 
 # 2. Start infrastructure (PostgreSQL, Kafka, Redis)
 docker-compose up -d
@@ -253,7 +253,7 @@ mvn flyway:migrate
 
 **Access**:
 - Role: `admin`
-- Demo: admin@platform.com / admin123
+- Demo: admin@fincore.com / admin123
 
 ### 2. Merchant Portal (Port 3001)
 
@@ -453,7 +453,7 @@ See full documentation: [backend/commons/src/main/java/com/collins/platform/comm
 **Using payments API**:
 
 ```typescript
-import { usePayments, useRefundPayment } from '@payments-platform/api-client/hooks';
+import { usePayments, useRefundPayment } from '@fincore/api-client/hooks';
 import { paymentsApi } from '@/lib/api';
 
 function TransactionsPage() {
@@ -483,7 +483,7 @@ function TransactionsPage() {
 
 ```typescript
 // lib/api.ts
-import { createApiClient, PaymentsApi } from '@payments-platform/api-client';
+import { createApiClient, PaymentsApi } from '@fincore/api-client';
 
 const client = createApiClient({
   baseURL: process.env.NEXT_PUBLIC_API_URL!,
@@ -673,7 +673,7 @@ chore(scope): tooling changes
 
 For issues or questions:
 - GitHub Issues: <repository-url>/issues
-- Email: support@paymentsplatform.com
+- Email: support@fincore.com
 
 ---
 

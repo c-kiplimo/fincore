@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, Badge, Button, Input } from '@payments-platform/ui';
+import { Card, CardContent, Badge, Button, Input } from '@fincore/ui';
 
 export default function DisputesPage() {
   // TODO: Fetch from API

@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, Badge } from '@payments-platform/ui';
-import { PayoutStatus } from '@payments-platform/types';
+import { Card, CardContent, Badge } from '@fincore/ui';
+import { PayoutStatus } from '@fincore/types';
 
 export function PayoutList() {
   // TODO: Fetch from API

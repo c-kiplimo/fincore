@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, type UseQueryOptions, type UseMutationOptions } from '@tanstack/react-query';
-import type { Payout, CreatePayoutRequest } from '@payments-platform/types';
+import type { Payout, CreatePayoutRequest } from '@fincore/types';
 import type { PayoutsApi } from '../payouts';
 
 /**

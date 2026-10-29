@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@fincore/ui';
 
 export default function LoginPage() {
   const router = useRouter();

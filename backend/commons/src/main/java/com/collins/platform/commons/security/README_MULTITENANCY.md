@@ -1,6 +1,6 @@
 # Row-Level Multitenancy Implementation
 
-This document explains how multitenancy is implemented in the Payments Platform using PostgreSQL Row-Level Security (RLS) and Spring Boot.
+This document explains how multitenancy is implemented in the FinCore using PostgreSQL Row-Level Security (RLS) and Spring Boot.
 
 ## Overview
 

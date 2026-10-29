@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@payments-platform/ui';
-import { PaymentStatus } from '@payments-platform/types';
+import { Card, CardContent, CardHeader, CardTitle, Badge } from '@fincore/ui';
+import { PaymentStatus } from '@fincore/types';
 import Link from 'next/link';
 
 export function RecentTransactions() {

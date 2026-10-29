@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, Badge, Button } from '@payments-platform/ui';
+import { Card, CardContent, Badge, Button } from '@fincore/ui';
 
 export default function MerchantsPage() {
   // TODO: Fetch from API

@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@payments-platform/ui';
+import { Button } from '@fincore/ui';
 
 export function RequestPayoutButton() {
   const handleRequestPayout = () => {

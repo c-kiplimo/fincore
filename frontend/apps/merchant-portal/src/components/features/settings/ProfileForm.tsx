@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, Input, Button } from '@payments-platform/ui';
+import { Card, CardContent, Input, Button } from '@fincore/ui';
 import { useState } from 'react';
 
 export function ProfileForm() {

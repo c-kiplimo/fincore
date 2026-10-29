@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@fincore/ui';
 import { useState } from 'react';
 
 export function ReportGenerator() {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@payments-platform/ui';
+import { cn } from '@fincore/ui';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },

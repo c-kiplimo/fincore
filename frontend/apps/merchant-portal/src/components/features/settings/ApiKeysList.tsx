@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, Badge, Button } from '@payments-platform/ui';
+import { Card, CardContent, Badge, Button } from '@fincore/ui';
 import { useState } from 'react';
 
 export function ApiKeysList() {

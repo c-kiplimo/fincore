@@ -3,7 +3,7 @@
 import { Header } from '@/components/layout/Header';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@payments-platform/ui';
+import { cn } from '@fincore/ui';
 
 const settingsTabs = [
   { name: 'API Keys', href: '/settings/api-keys' },

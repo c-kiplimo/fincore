@@ -1,5 +1,5 @@
 {
-  "name": "@payments-platform/ui",
+  "name": "@fincore/ui",
   "version": "1.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

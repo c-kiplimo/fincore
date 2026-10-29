@@ -1,5 +1,5 @@
 import type { Config } from 'tailwindcss';
-import { tailwindColors } from '@payments-platform/ui';
+import { tailwindColors } from '@fincore/ui';
 
 const config: Config = {
   content: [

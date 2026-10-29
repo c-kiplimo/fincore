@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, Badge, Button } from '@payments-platform/ui';
-import { DisputeStatus } from '@payments-platform/types';
+import { Card, CardContent, Badge, Button } from '@fincore/ui';
+import { DisputeStatus } from '@fincore/types';
 import { useState } from 'react';
 
 export function DisputeList() {

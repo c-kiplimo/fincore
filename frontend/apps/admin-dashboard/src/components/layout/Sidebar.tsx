@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@payments-platform/ui';
+import { cn } from '@fincore/ui';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: '📊' },
@@ -55,7 +55,7 @@ export function Sidebar() {
           <div className="h-10 w-10 rounded-full bg-gray-200"></div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">Admin User</p>
-            <p className="text-xs text-gray-500 truncate">admin@platform.com</p>
+            <p className="text-xs text-gray-500 truncate">admin@fincore.com</p>
           </div>
         </div>
       </div>

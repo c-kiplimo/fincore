@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, Input } from '@payments-platform/ui';
+import { Card, CardContent, Input } from '@fincore/ui';
 
 export function TransactionFilters() {
   return (

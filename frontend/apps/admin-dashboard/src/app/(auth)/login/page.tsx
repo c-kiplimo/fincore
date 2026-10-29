@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Input, Button } from '@fincore/ui';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -71,7 +71,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@platform.com"
+                  placeholder="admin@fincore.com"
                   required
                   disabled={isLoading}
                 />
@@ -107,7 +107,7 @@ export default function LoginPage() {
         {/* Demo Credentials */}
         <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-600 font-semibold mb-2">Demo Credentials:</p>
-          <p className="text-xs text-gray-600">Email: admin@platform.com</p>
+          <p className="text-xs text-gray-600">Email: admin@fincore.com</p>
           <p className="text-xs text-gray-600">Password: admin123</p>
         </div>
       </div>

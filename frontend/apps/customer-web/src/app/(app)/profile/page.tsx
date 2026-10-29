@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '@fincore/ui';
 
 export default function ProfilePage() {
   // TODO: Fetch from API

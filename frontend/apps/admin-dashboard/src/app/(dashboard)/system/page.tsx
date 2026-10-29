@@ -1,5 +1,5 @@
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Badge } from '@fincore/ui';
 
 export default function SystemHealthPage() {
   // TODO: Fetch from actuator endpoints

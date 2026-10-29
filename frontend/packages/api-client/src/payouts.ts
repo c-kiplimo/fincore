@@ -3,7 +3,7 @@ import type {
   Payout,
   CreatePayoutRequest,
   PaginatedResponse,
-} from '@payments-platform/types';
+} from '@fincore/types';
 import { withIdempotency } from './client';
 
 export interface ListPayoutsParams {

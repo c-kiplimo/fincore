@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from '@payments-platform/ui';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Button } from '@fincore/ui';
 
 export function ReportHistory() {
   // TODO: Fetch from API

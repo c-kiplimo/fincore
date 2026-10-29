@@ -1,6 +1,6 @@
-# Customer Mobile App - Payments Platform
+# Customer Mobile App - FinCore
 
-React Native mobile application for the Payments Platform customer wallet.
+React Native mobile application for the FinCore customer wallet.
 
 ## Features
 
@@ -57,16 +57,36 @@ cd ios && pod install && cd ..
 
 ### Running the App
 
+#### On Emulator/Simulator
+
 ```bash
 # Start Metro bundler
 npm start
 
-# Run on iOS
+# Run on iOS simulator
 npm run ios
 
-# Run on Android
+# Run on Android emulator
 npm run android
 ```
+
+#### On Physical Device
+
+**Android Phone**: See detailed guide in [ANDROID_DEPLOYMENT.md](./ANDROID_DEPLOYMENT.md)
+
+**Quick Steps**:
+1. Enable USB debugging on your phone
+2. Connect phone via USB
+3. Run `adb devices` to verify connection
+4. Run `npm run android`
+
+**iPhone** (macOS only):
+1. Connect iPhone via USB
+2. Open Xcode
+3. Select your device as target
+4. Run `npm run ios`
+
+For complete instructions on installing to your physical Android device, including APK generation and wireless deployment, see **[ANDROID_DEPLOYMENT.md](./ANDROID_DEPLOYMENT.md)**.
 
 ## Design System
 
