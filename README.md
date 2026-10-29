@@ -21,6 +21,21 @@
 > **Not for real money.** This is a portfolio and learning project. There is no card data, no PCI scope and no real
 > bank. A simulator stands in for the card network, mobile money, the bank and FX feeds.
 
+## 🚀 Quick Access to UIs
+
+**Want to see the platform in action?** See [QUICK_START.md](./QUICK_START.md) for:
+- **Admin Dashboard**: http://localhost:3000 (manage platform, merchants, transactions)
+- **Merchant Portal**: http://localhost:3001 (business revenue, payouts, disputes)
+- **Customer Web**: http://localhost:3002 (wallet, payments, transfers)
+- **Customer Mobile**: React Native app (iOS/Android) - [Deployment Guide](./frontend/apps/customer-mobile/ANDROID_DEPLOYMENT.md)
+
+**Complete Documentation**:
+- [QUICK_START.md](./QUICK_START.md) - Launch all UIs in minutes
+- [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) - Complete architecture (600+ lines)
+- [ANDROID_DEPLOYMENT.md](./frontend/apps/customer-mobile/ANDROID_DEPLOYMENT.md) - Install mobile app on your phone
+
+---
+
 ## Contents
 
 - [Why this project](#why-this-project)
