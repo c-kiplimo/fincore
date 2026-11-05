@@ -5,39 +5,49 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
+import { useWallet, useTransferHistory } from '@fincore/api-client/hooks';
+import { formatCurrency, formatDateTime } from '@fincore/utils';
+import { walletsApi } from '@services/api';
 import { colors } from '@theme/colors';
 import { spacing } from '@theme/spacing';
 import { typography } from '@theme/typography';
 
+// TODO: Get wallet ID from auth context/storage
+const WALLET_ID = 'wal_example';
+
 export default function WalletScreen() {
-  // TODO: Fetch from API
-  const balance = 150000; // 1,500.00 KES
-  const currency = 'KES';
+  const {
+    data: wallet,
+    isLoading: walletLoading,
+    error: walletError,
+  } = useWallet(walletsApi, WALLET_ID);
 
-  const recentTransactions = [
-    {
-      id: 'txn_1',
-      description: 'Payment to Example Store',
-      amount: -5000,
-      createdAt: '2026-10-29T10:30:00Z',
-      status: 'COMPLETED',
-    },
-    {
-      id: 'txn_2',
-      description: 'Top-up via M-Pesa',
-      amount: 10000,
-      createdAt: '2026-10-29T09:15:00Z',
-      status: 'COMPLETED',
-    },
-  ];
+  const {
+    data: transactions,
+    isLoading: txnLoading,
+  } = useTransferHistory(walletsApi, WALLET_ID);
 
-  const formatBalance = (amountMinor: number) => {
-    return (amountMinor / 100).toLocaleString('en', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  const recentTransactions = transactions?.slice(0, 5) || [];
+
+  if (walletLoading || txnLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.platformGreen} />
+        <Text style={styles.loadingText}>Loading wallet...</Text>
+      </View>
+    );
+  }
+
+  if (walletError || !wallet) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to load wallet</Text>
+        <Text style={styles.errorSubtext}>Please try again</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -53,9 +63,9 @@ export default function WalletScreen() {
       <View style={styles.balanceCard}>
         <Text style={styles.balanceLabel}>Available Balance</Text>
         <Text style={styles.balanceAmount}>
-          {formatBalance(balance)} {currency}
+          {formatCurrency(wallet.balanceMinor, wallet.currency)}
         </Text>
-        <Text style={styles.walletId}>Wallet ID: wal_abc123</Text>
+        <Text style={styles.walletId}>Wallet ID: {wallet.id}</Text>
       </View>
 
       {/* Quick Actions */}
@@ -90,43 +100,56 @@ export default function WalletScreen() {
         </View>
 
         <View style={styles.transactionList}>
-          {recentTransactions.map(txn => (
-            <TouchableOpacity key={txn.id} style={styles.transactionItem}>
-              <View style={styles.transactionLeft}>
-                <View
-                  style={[
-                    styles.transactionIcon,
-                    {
-                      backgroundColor:
-                        txn.amount > 0 ? '#D1FAE5' : colors.gray100,
-                    },
-                  ]}>
-                  <Text style={{ fontSize: 20 }}>{txn.amount > 0 ? '↓' : '💳'}</Text>
-                </View>
-                <View>
-                  <Text style={styles.transactionDesc}>{txn.description}</Text>
-                  <Text style={styles.transactionDate}>
-                    {new Date(txn.createdAt).toLocaleDateString('en', {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-              </View>
-              <View>
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    { color: txn.amount > 0 ? colors.success : colors.platformInk },
-                  ]}>
-                  {txn.amount > 0 ? '+' : ''}
-                  {formatBalance(Math.abs(txn.amount))} {currency}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {recentTransactions.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No transactions yet</Text>
+              <Text style={styles.emptySubtext}>
+                Your wallet activity will appear here
+              </Text>
+            </View>
+          ) : (
+            recentTransactions.map(txn => {
+              const isCredit = txn.toWalletId === WALLET_ID;
+              const typeLabel =
+                txn.type === 'TOP_UP'
+                  ? 'Top-up'
+                  : txn.type === 'TRANSFER' || txn.type === 'P2P'
+                  ? 'Transfer'
+                  : 'Payment';
+
+              return (
+                <TouchableOpacity key={txn.id} style={styles.transactionItem}>
+                  <View style={styles.transactionLeft}>
+                    <View
+                      style={[
+                        styles.transactionIcon,
+                        {
+                          backgroundColor: isCredit ? '#D1FAE5' : colors.gray100,
+                        },
+                      ]}>
+                      <Text style={{ fontSize: 20 }}>{isCredit ? '↓' : '💳'}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.transactionDesc}>{typeLabel}</Text>
+                      <Text style={styles.transactionDate}>
+                        {formatDateTime(txn.createdAt)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View>
+                    <Text
+                      style={[
+                        styles.transactionAmount,
+                        { color: isCredit ? colors.success : colors.platformInk },
+                      ]}>
+                      {isCredit ? '+' : '-'}
+                      {formatCurrency(Math.abs(txn.amountMinor), txn.currency)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
       </View>
     </ScrollView>
@@ -261,5 +284,48 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.semibold,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.gray500,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+    padding: spacing.xl,
+  },
+  errorText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.platformInk,
+    marginBottom: spacing.sm,
+  },
+  errorSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray500,
+    textAlign: 'center',
+  },
+  emptyState: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: typography.fontSize.base,
+    color: colors.gray500,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray400,
+    textAlign: 'center',
   },
 });
