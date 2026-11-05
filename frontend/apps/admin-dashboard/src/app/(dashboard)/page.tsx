@@ -1,18 +1,53 @@
+'use client';
+
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@fincore/ui';
+import { Card, CardContent, CardHeader, CardTitle, Skeleton } from '@fincore/ui';
+import { usePlatformMetrics } from '@fincore/api-client/hooks';
+import { formatCurrency } from '@fincore/utils';
+import { adminApi } from '@/lib/api';
 
 export default function DashboardPage() {
-  // TODO: Fetch from API
-  const platformMetrics = {
-    totalRevenue: 5000000, // 50,000.00
-    activemerchants: 125,
-    todayTransactions: 842,
-    successRate: 97.8,
-  };
+  const { data: metrics, isLoading, error } = usePlatformMetrics(adminApi);
 
-  const formatCurrency = (amountMinor: number) => {
-    return `${(amountMinor / 100).toFixed(2)} KES`;
-  };
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header title="Platform Overview" />
+        <div className="flex-1 p-6 space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-4 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-24 mb-2" />
+                  <Skeleton className="h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header title="Platform Overview" />
+        <div className="flex-1 p-6">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-red-600 text-center">
+                Failed to load platform metrics. Please try again.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -29,7 +64,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                {formatCurrency(platformMetrics.totalRevenue)}
+                {formatCurrency(metrics.totalRevenueMinor, metrics.currency)}
               </div>
               <p className="text-xs text-gray-500 mt-1">All time</p>
             </CardContent>
@@ -43,10 +78,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                {platformMetrics.activemerchants}
+                {metrics.activeMerchants}
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                <span className="text-green-600">+8</span> this month
+                Total merchants: {metrics.totalMerchants}
               </p>
             </CardContent>
           </Card>
@@ -54,14 +89,14 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-sm font-medium text-gray-600">
-                Today's Transactions
+                Total Transactions
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                {platformMetrics.todayTransactions}
+                {metrics.totalTransactions.toLocaleString()}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Across all merchants</p>
+              <p className="text-xs text-gray-500 mt-1">All time</p>
             </CardContent>
           </Card>
 
@@ -73,9 +108,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold">
-                {platformMetrics.successRate}%
+                {metrics.successRate.toFixed(1)}%
               </div>
-              <p className="text-xs text-gray-500 mt-1">Last 30 days</p>
+              <p className="text-xs text-gray-500 mt-1">All transactions</p>
             </CardContent>
           </Card>
         </div>
@@ -83,12 +118,19 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Platform Activity</CardTitle>
+            <CardTitle>Platform Statistics</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-500">
-              Activity feed coming soon...
-            </p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Total Payouts:</span>
+                <p className="font-semibold">{formatCurrency(metrics.totalPayoutsMinor, metrics.currency)}</p>
+              </div>
+              <div>
+                <span className="text-gray-600">Total Disputes:</span>
+                <p className="font-semibold">{metrics.totalDisputes}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1,43 +1,57 @@
+'use client';
+
 import { Header } from '@/components/layout/Header';
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@fincore/ui';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from '@fincore/ui';
+import { useSystemHealth } from '@fincore/api-client/hooks';
+import { adminApi } from '@/lib/api';
 
 export default function SystemHealthPage() {
-  // TODO: Fetch from actuator endpoints
-  const services = [
-    { name: 'API Gateway', port: 8080, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Ledger Service', port: 8081, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Pricing Service', port: 8082, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Payments Service', port: 8083, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Accounts Service', port: 8084, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Payouts Service', port: 8085, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Lending Service', port: 8086, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Reconciliation Service', port: 8087, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-    { name: 'Rails Simulator', port: 8088, status: 'UP', uptime: '15d 4h', version: '1.0.0' },
-  ];
+  const { data: health, isLoading, error } = useSystemHealth(adminApi);
 
-  const infrastructure = [
-    { name: 'PostgreSQL', type: 'Database', status: 'UP', connections: 42, maxConnections: 100 },
-    { name: 'Redis', type: 'Cache', status: 'UP', memory: '450MB', maxMemory: '2GB' },
-    { name: 'Kafka', type: 'Message Queue', status: 'UP', topics: 8, partitions: 24 },
-  ];
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header title="System Health" />
+        <div className="flex-1 p-6 space-y-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const kafkaTopics = [
-    { name: 'payment-events', messages: 1420, lag: 0, consumers: 2 },
-    { name: 'payout-events', messages: 340, lag: 0, consumers: 1 },
-    { name: 'ledger-events', messages: 2800, lag: 0, consumers: 3 },
-    { name: 'dispute-events', messages: 15, lag: 2, consumers: 1 },
-  ];
-
-  const outboxStatus = {
-    pending: 0,
-    processing: 0,
-    published: 1520,
-    failed: 3,
-  };
+  if (error || !health) {
+    return (
+      <div className="flex flex-col h-full">
+        <Header title="System Health" />
+        <div className="flex-1 p-6">
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-red-600 text-center">
+                Failed to load system health data. Please try again.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusVariant = (status: string) => {
-    return status === 'UP' ? 'completed' : 'failed';
+    return status === 'UP' || status === 'HEALTHY' ? 'completed' : 'failed';
   };
+
+  const overallStatus = health.services?.every(s => s.status === 'UP' || s.status === 'HEALTHY')
+    ? 'All Systems Operational'
+    : 'Some Systems Down';
 
   return (
     <div className="flex flex-col h-full">
@@ -49,7 +63,9 @@ export default function SystemHealthPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               System Status
-              <Badge variant="completed">All Systems Operational</Badge>
+              <Badge variant={health.services?.every(s => s.status === 'UP' || s.status === 'HEALTHY') ? 'completed' : 'failed'}>
+                {overallStatus}
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -60,46 +76,46 @@ export default function SystemHealthPage() {
         </Card>
 
         {/* Microservices Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Microservices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((service) => (
-                <div
-                  key={service.port}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-platform-green transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="font-medium">{service.name}</div>
-                      <div className="text-sm text-gray-500">Port {service.port}</div>
+        {health.services && health.services.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Microservices</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {health.services.map((service) => (
+                  <div
+                    key={service.name}
+                    className="border border-gray-200 rounded-lg p-4 hover:border-platform-green transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-medium">{service.name}</div>
+                        <div className="text-sm text-gray-500">{service.type || 'Service'}</div>
+                      </div>
+                      <Badge variant={getStatusVariant(service.status)}>{service.status}</Badge>
                     </div>
-                    <Badge variant={getStatusVariant(service.status)}>{service.status}</Badge>
+                    {service.details && (
+                      <div className="mt-3 text-xs text-gray-500">
+                        {service.details}
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-3 space-y-1">
-                    <div className="text-xs text-gray-500">
-                      Uptime: <span className="text-gray-900">{service.uptime}</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Version: <span className="text-gray-900">{service.version}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Infrastructure */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Infrastructure</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {infrastructure.map((infra) => (
+        {/* Infrastructure - Show if we have the data */}
+        {health.infrastructure && health.infrastructure.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Infrastructure</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {health.infrastructure.map((infra) => (
                 <div
                   key={infra.name}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
