@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,71 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { useWallet, useTransfer } from '@fincore/api-client/hooks';
+import { formatCurrency } from '@fincore/utils';
+import { walletsApi } from '@services/api';
 import { colors } from '@theme/colors';
 import { spacing } from '@theme/spacing';
 import { typography } from '@theme/typography';
 
+// TODO: Get wallet ID from auth context/storage
+const WALLET_ID = 'wal_example';
+
 export default function TransferScreen() {
+  const [recipientId, setRecipientId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+
+  const { data: wallet } = useWallet(walletsApi, WALLET_ID);
+
+  const transferMutation = useTransfer(walletsApi, {
+    onSuccess: () => {
+      Alert.alert('Success', 'Transfer completed successfully');
+      setRecipientId('');
+      setAmount('');
+      setNote('');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Transfer failed');
+    },
+  });
+
+  const transferFee = 0; // Free P2P transfers
+  const amountMinor = amount ? Math.round(parseFloat(amount) * 100) : 0;
+  const totalMinor = amountMinor + transferFee;
+
+  const handleTransfer = () => {
+    if (!recipientId.trim()) {
+      Alert.alert('Validation Error', 'Please enter recipient wallet ID or phone');
+      return;
+    }
+
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      Alert.alert('Validation Error', 'Please enter a valid amount');
+      return;
+    }
+
+    const amountMinorValue = Math.round(amountValue * 100);
+    if (wallet && amountMinorValue > wallet.balanceMinor) {
+      Alert.alert('Insufficient Balance', 'You do not have enough balance for this transfer');
+      return;
+    }
+
+    transferMutation.mutate({
+      fromWalletId: WALLET_ID,
+      data: {
+        toWalletId: recipientId.trim(),
+        amountMinor: amountMinorValue,
+        currency: 'KES',
+        description: note.trim() || undefined,
+      },
+    });
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -46,6 +105,9 @@ export default function TransferScreen() {
             style={styles.input}
             placeholder="+254712345678 or wal_xyz..."
             placeholderTextColor={colors.placeholder}
+            value={recipientId}
+            onChangeText={setRecipientId}
+            editable={!transferMutation.isPending}
           />
 
           <Text style={styles.label}>Amount (KES)</Text>
@@ -54,6 +116,9 @@ export default function TransferScreen() {
             placeholder="0.00"
             keyboardType="numeric"
             placeholderTextColor={colors.placeholder}
+            value={amount}
+            onChangeText={setAmount}
+            editable={!transferMutation.isPending}
           />
 
           <Text style={styles.label}>Note (Optional)</Text>
@@ -61,21 +126,39 @@ export default function TransferScreen() {
             style={styles.input}
             placeholder="What's this for?"
             placeholderTextColor={colors.placeholder}
+            value={note}
+            onChangeText={setNote}
+            editable={!transferMutation.isPending}
           />
 
           <View style={styles.summary}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Transfer Fee</Text>
-              <Text style={styles.summaryValue}>0.00 KES</Text>
+              <Text style={styles.summaryValue}>
+                {formatCurrency(transferFee, 'KES')}
+              </Text>
             </View>
             <View style={[styles.summaryRow, styles.summaryTotal]}>
               <Text style={styles.summaryTotalLabel}>Total</Text>
-              <Text style={styles.summaryTotalValue}>0.00 KES</Text>
+              <Text style={styles.summaryTotalValue}>
+                {amount ? formatCurrency(totalMinor, 'KES') : '0.00 KES'}
+              </Text>
             </View>
           </View>
 
-          <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Send Money</Text>
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              transferMutation.isPending && styles.buttonDisabled,
+            ]}
+            onPress={handleTransfer}
+            disabled={transferMutation.isPending}
+          >
+            {transferMutation.isPending ? (
+              <ActivityIndicator color={colors.platformWhite} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Send Money</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -209,5 +292,8 @@ const styles = StyleSheet.create({
     color: colors.platformWhite,
     fontSize: typography.fontSize.base,
     fontWeight: typography.fontWeight.medium,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });

@@ -1,16 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@fincore/ui';
+import { RequestPayoutDialog } from './RequestPayoutDialog';
 
 export function RequestPayoutButton() {
-  const handleRequestPayout = () => {
-    // TODO: Open dialog to request payout
-    console.log('Request payout clicked');
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <Button onClick={handleRequestPayout}>
-      Request Payout
-    </Button>
+    <>
+      <Button onClick={() => setDialogOpen(true)}>
+        Request Payout
+      </Button>
+
+      <RequestPayoutDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+      />
+    </>
   );
 }

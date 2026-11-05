@@ -1,49 +1,58 @@
 'use client';
 
-import { Card, CardContent, Badge } from '@fincore/ui';
-import { PayoutStatus } from '@fincore/types';
+import { Card, CardContent, Badge, Skeleton } from '@fincore/ui';
+import { usePayouts } from '@fincore/api-client/hooks';
+import { formatCurrency, formatDateTime, getPayoutStatusVariant } from '@fincore/utils';
+import { payoutsApi } from '@/lib/api';
+import type { PayoutStatus } from '@fincore/types';
 
 export function PayoutList() {
-  // TODO: Fetch from API
-  const payouts = [
-    {
-      id: 'po_abc123',
-      amountMinor: 450000,
-      currency: 'KES',
-      feeMinor: 2250,
-      totalDebitedMinor: 452250,
-      status: PayoutStatus.PAID,
-      destinationType: 'BANK',
-      destinationAccount: '****1234',
-      createdAt: '2026-10-28T14:00:00Z',
-    },
-    {
-      id: 'po_def456',
-      amountMinor: 320000,
-      currency: 'KES',
-      feeMinor: 1600,
-      totalDebitedMinor: 321600,
-      status: PayoutStatus.SENDING,
-      destinationType: 'BANK',
-      destinationAccount: '****1234',
-      createdAt: '2026-10-29T10:00:00Z',
-    },
-  ];
+  const { data: payoutsData, isLoading, error } = usePayouts(payoutsApi, {
+    pageSize: 50,
+  });
 
-  const formatCurrency = (amountMinor: number, currency: string) => {
-    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
-  };
+  const payouts = payoutsData?.items || [];
 
-  const getStatusVariant = (status: PayoutStatus) => {
-    const variants: Record<PayoutStatus, any> = {
-      [PayoutStatus.CREATED]: 'pending',
-      [PayoutStatus.SENDING]: 'processing',
-      [PayoutStatus.SENT]: 'processing',
-      [PayoutStatus.PAID]: 'completed',
-      [PayoutStatus.FAILED]: 'failed',
-    };
-    return variants[status];
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-sm text-red-600 text-center">
+            Failed to load payouts. Please try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (payouts.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-12">
+          <div className="text-center">
+            <p className="text-gray-500">No payouts yet</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Request a payout to transfer your available balance to your bank account
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -90,35 +99,30 @@ export function PayoutList() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {formatCurrency(payout.feeMinor, payout.currency)}
+                      {formatCurrency(payout.feeMinor || 0, payout.currency)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium">
-                      {formatCurrency(payout.totalDebitedMinor, payout.currency)}
+                      {formatCurrency(payout.totalDebitedMinor || payout.amountMinor, payout.currency)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {payout.destinationType}
+                      {payout.destinationType || 'BANK'}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {payout.destinationAccount}
+                      {payout.destinationAccount || 'N/A'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={getStatusVariant(payout.status)}>
+                    <Badge variant={getPayoutStatusVariant(payout.status)}>
                       {payout.status}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {new Date(payout.createdAt).toLocaleString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatDateTime(payout.createdAt)}
                     </div>
                   </td>
                 </tr>

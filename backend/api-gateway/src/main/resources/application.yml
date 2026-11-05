@@ -7,6 +7,10 @@ spring:
   cloud:
     gateway:
       routes:
+        - id: auth
+          uri: ${ACCOUNTS_URL:http://localhost:8084}
+          predicates:
+            - Path=/v1/auth/**
         - id: ledger
           uri: ${LEDGER_URL:http://localhost:8081}
           predicates:

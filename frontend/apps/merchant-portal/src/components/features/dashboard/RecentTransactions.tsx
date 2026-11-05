@@ -1,55 +1,73 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Badge } from '@fincore/ui';
-import { PaymentStatus } from '@fincore/types';
+import { useSession } from 'next-auth/react';
+import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from '@fincore/ui';
+import { usePayments } from '@fincore/api-client/hooks';
+import { formatCurrency, formatDateTime, getPaymentStatusVariant } from '@fincore/utils';
+import { paymentsApi } from '@/lib/api';
 import Link from 'next/link';
 
 export function RecentTransactions() {
-  // TODO: Fetch from API
-  const transactions = [
-    {
-      id: 'pi_abc123',
-      amountMinor: 10000,
-      currency: 'KES',
-      status: PaymentStatus.CAPTURED,
-      description: 'Payment from customer',
-      createdAt: '2026-10-29T10:30:00Z',
-    },
-    {
-      id: 'pi_def456',
-      amountMinor: 5000,
-      currency: 'KES',
-      status: PaymentStatus.REFUNDED,
-      description: 'Refunded order #1234',
-      createdAt: '2026-10-29T09:15:00Z',
-    },
-    {
-      id: 'pi_ghi789',
-      amountMinor: 15000,
-      currency: 'KES',
-      status: PaymentStatus.CAPTURED,
-      description: 'Subscription payment',
-      createdAt: '2026-10-29T08:00:00Z',
-    },
-  ];
+  const { data: session } = useSession();
+  const merchantId = session?.user?.merchantId;
 
-  const formatCurrency = (amountMinor: number, currency: string) => {
-    return `${(amountMinor / 100).toFixed(2)} ${currency}`;
-  };
+  const { data: paymentsData, isLoading, error } = usePayments(
+    paymentsApi,
+    { merchantId, pageSize: 5 },
+    { enabled: !!merchantId }
+  );
 
-  const getStatusVariant = (status: PaymentStatus) => {
-    const variants: Record<PaymentStatus, any> = {
-      [PaymentStatus.AUTHORIZED]: 'processing',
-      [PaymentStatus.CAPTURED]: 'completed',
-      [PaymentStatus.PARTIALLY_REFUNDED]: 'warning',
-      [PaymentStatus.REFUNDED]: 'canceled',
-      [PaymentStatus.DISPUTED]: 'warning',
-      [PaymentStatus.CHARGED_BACK]: 'failed',
-      [PaymentStatus.CANCELED]: 'canceled',
-      [PaymentStatus.DECLINED]: 'failed',
-    };
-    return variants[status];
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border-b border-gray-100 pb-4">
+                <Skeleton className="h-5 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !paymentsData) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-red-600">
+            Failed to load transactions. Please try again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const transactions = paymentsData.items || [];
+
+  if (transactions.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Recent Transactions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-500 text-center py-8">
+            No transactions yet. Your recent payments will appear here.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -71,13 +89,13 @@ export function RecentTransactions() {
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="font-medium">{txn.description}</p>
-                  <Badge variant={getStatusVariant(txn.status)}>
+                  <p className="font-medium">{txn.description || 'Payment'}</p>
+                  <Badge variant={getPaymentStatusVariant(txn.status)}>
                     {txn.status}
                   </Badge>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
-                  {txn.id} • {new Date(txn.createdAt).toLocaleString()}
+                  {txn.id} • {formatDateTime(txn.createdAt)}
                 </p>
               </div>
               <div className="text-right">

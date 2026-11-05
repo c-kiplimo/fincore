@@ -1,16 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@fincore/ui';
+import { CreateApiKeyDialog } from './CreateApiKeyDialog';
 
 export function CreateApiKeyButton() {
-  const handleCreateKey = () => {
-    // TODO: Open dialog to create new API key
-    console.log('Create new API key');
-  };
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
-    <Button onClick={handleCreateKey}>
-      Create API Key
-    </Button>
+    <>
+      <Button onClick={() => setDialogOpen(true)}>
+        Create API Key
+      </Button>
+
+      <CreateApiKeyDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+      />
+    </>
   );
 }

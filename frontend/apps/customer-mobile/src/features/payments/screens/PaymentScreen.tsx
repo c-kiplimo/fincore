@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,82 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { usePayments, useCreatePayment } from '@fincore/api-client/hooks';
+import { formatRelativeDate } from '@fincore/utils';
+import { paymentsApi } from '@services/api';
 import { colors } from '@theme/colors';
 import { spacing } from '@theme/spacing';
 import { typography } from '@theme/typography';
 
 export default function PaymentScreen() {
+  const [merchantId, setMerchantId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+
+  const { data: paymentsData, isLoading: paymentsLoading } = usePayments(
+    paymentsApi,
+    { limit: 20 }
+  );
+
+  const createPaymentMutation = useCreatePayment(paymentsApi, {
+    onSuccess: () => {
+      Alert.alert('Success', 'Payment initiated successfully');
+      setMerchantId('');
+      setAmount('');
+      setDescription('');
+    },
+    onError: (error: any) => {
+      Alert.alert('Error', error.message || 'Failed to create payment');
+    },
+  });
+
+  // Extract unique recent merchants from payment history
+  const recentMerchants = paymentsData?.items
+    ? Array.from(
+        new Map(
+          paymentsData.items
+            .filter((p) => p.merchantId)
+            .map((p) => [
+              p.merchantId,
+              {
+                id: p.merchantId,
+                name: p.merchantName || `Merchant ${p.merchantId.slice(0, 8)}`,
+                lastPaid: p.createdAt,
+              },
+            ])
+        ).values()
+      ).slice(0, 5)
+    : [];
+
+  const handleCreatePayment = () => {
+    if (!merchantId.trim()) {
+      Alert.alert('Validation Error', 'Please enter a merchant ID');
+      return;
+    }
+
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      Alert.alert('Validation Error', 'Please enter a valid amount');
+      return;
+    }
+
+    createPaymentMutation.mutate({
+      data: {
+        merchantId: merchantId.trim(),
+        amountMinor: Math.round(amountValue * 100),
+        currency: 'KES',
+        description: description.trim() || undefined,
+      },
+    });
+  };
+
+  const handlePayMerchant = (merchantIdValue: string) => {
+    setMerchantId(merchantIdValue);
+  };
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -37,13 +107,16 @@ export default function PaymentScreen() {
 
       {/* Manual Payment */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Pay with Card</Text>
+        <Text style={styles.cardTitle}>Pay Merchant</Text>
         <View style={styles.form}>
           <Text style={styles.label}>Merchant ID</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter merchant ID..."
             placeholderTextColor={colors.placeholder}
+            value={merchantId}
+            onChangeText={setMerchantId}
+            editable={!createPaymentMutation.isPending}
           />
 
           <Text style={styles.label}>Amount (KES)</Text>
@@ -52,6 +125,9 @@ export default function PaymentScreen() {
             placeholder="0.00"
             keyboardType="numeric"
             placeholderTextColor={colors.placeholder}
+            value={amount}
+            onChangeText={setAmount}
+            editable={!createPaymentMutation.isPending}
           />
 
           <Text style={styles.label}>Description (Optional)</Text>
@@ -59,10 +135,24 @@ export default function PaymentScreen() {
             style={styles.input}
             placeholder="What's this for?"
             placeholderTextColor={colors.placeholder}
+            value={description}
+            onChangeText={setDescription}
+            editable={!createPaymentMutation.isPending}
           />
 
-          <TouchableOpacity style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>Continue to Payment</Text>
+          <TouchableOpacity
+            style={[
+              styles.primaryButton,
+              createPaymentMutation.isPending && styles.buttonDisabled,
+            ]}
+            onPress={handleCreatePayment}
+            disabled={createPaymentMutation.isPending}
+          >
+            {createPaymentMutation.isPending ? (
+              <ActivityIndicator color={colors.platformWhite} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Continue to Payment</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -70,20 +160,41 @@ export default function PaymentScreen() {
       {/* Recent Merchants */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Merchants</Text>
-        {['Example Store', 'Coffee Shop'].map((merchant, index) => (
-          <TouchableOpacity key={index} style={styles.merchantItem}>
-            <View style={styles.merchantLeft}>
-              <View style={styles.merchantAvatar} />
-              <View>
-                <Text style={styles.merchantName}>{merchant}</Text>
-                <Text style={styles.merchantDetail}>Last paid {index === 0 ? '2 days ago' : '1 week ago'}</Text>
+        {paymentsLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={colors.platformGreen} />
+          </View>
+        ) : recentMerchants.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No recent merchants</Text>
+            <Text style={styles.emptySubtext}>Your payment history will appear here</Text>
+          </View>
+        ) : (
+          recentMerchants.map((merchant) => (
+            <TouchableOpacity
+              key={merchant.id}
+              style={styles.merchantItem}
+              onPress={() => handlePayMerchant(merchant.id)}
+            >
+              <View style={styles.merchantLeft}>
+                <View style={styles.merchantAvatar}>
+                  <Text style={styles.merchantAvatarText}>
+                    {merchant.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.merchantName}>{merchant.name}</Text>
+                  <Text style={styles.merchantDetail}>
+                    Last paid {formatRelativeDate(merchant.lastPaid)}
+                  </Text>
+                </View>
               </View>
-            </View>
-            <TouchableOpacity style={styles.payButton}>
-              <Text style={styles.payButtonText}>Pay</Text>
+              <TouchableOpacity style={styles.payButton}>
+                <Text style={styles.payButtonText}>Pay</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-          </TouchableOpacity>
-        ))}
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -203,7 +314,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.gray200,
+    backgroundColor: colors.platformGreen,
+    opacity: 0.1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  merchantAvatarText: {
+    fontSize: typography.fontSize.base,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.platformGreen,
   },
   merchantName: {
     fontSize: typography.fontSize.sm,
@@ -222,5 +341,30 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.sm,
     color: colors.platformGreen,
     fontWeight: typography.fontWeight.medium,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  loadingContainer: {
+    padding: spacing.xl,
+    alignItems: 'center',
+  },
+  emptyState: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    backgroundColor: colors.platformWhite,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borderColor,
+  },
+  emptyText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray500,
+    marginBottom: spacing.xs,
+  },
+  emptySubtext: {
+    fontSize: typography.fontSize.xs,
+    color: colors.gray400,
+    textAlign: 'center',
   },
 });

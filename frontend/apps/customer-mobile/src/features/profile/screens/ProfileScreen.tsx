@@ -5,16 +5,52 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { useProfile, useLinkedAccounts } from '@fincore/api-client/hooks';
+import { settingsApi } from '@services/api';
+import { clearAuthTokens } from '@services/api';
 import { colors } from '@theme/colors';
 import { spacing } from '@theme/spacing';
 import { typography } from '@theme/typography';
 
+// TODO: Get user ID from auth context/storage
+const USER_ID = 'usr_example';
+
 export default function ProfileScreen() {
-  const user = {
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    phone: '+254712345678',
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useProfile(settingsApi, USER_ID);
+
+  const { data: linkedAccounts, isLoading: accountsLoading } = useLinkedAccounts(
+    settingsApi,
+    USER_ID
+  );
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearAuthTokens();
+              // Navigation to login will be handled by auth state
+              Alert.alert('Success', 'Signed out successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to sign out');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const MenuItem = ({ icon, title, subtitle, onPress }: any) => (
@@ -30,6 +66,24 @@ export default function ProfileScreen() {
     </TouchableOpacity>
   );
 
+  if (profileLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.platformGreen} />
+        <Text style={styles.loadingText}>Loading profile...</Text>
+      </View>
+    );
+  }
+
+  if (profileError || !profile) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to load profile</Text>
+        <Text style={styles.errorSubtext}>Please try again</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
@@ -40,10 +94,10 @@ export default function ProfileScreen() {
       {/* Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
+          <Text style={styles.avatarText}>{profile.name.charAt(0).toUpperCase()}</Text>
         </View>
-        <Text style={styles.userName}>{user.name}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
+        <Text style={styles.userName}>{profile.name}</Text>
+        <Text style={styles.userEmail}>{profile.email}</Text>
 
         <TouchableOpacity style={styles.editButton}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
@@ -68,21 +122,35 @@ export default function ProfileScreen() {
             <Text style={styles.addButton}>Add</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.accountList}>
-          {['KCB Bank - ****1234', 'Equity Bank - ****5678'].map((account, index) => (
-            <View key={index} style={styles.accountItem}>
-              <View style={styles.accountLeft}>
-                <View style={styles.bankIcon}>
-                  <Text style={{ fontSize: 20 }}>🏦</Text>
+        {accountsLoading ? (
+          <View style={styles.loadingSection}>
+            <ActivityIndicator color={colors.platformGreen} />
+          </View>
+        ) : linkedAccounts && linkedAccounts.length > 0 ? (
+          <View style={styles.accountList}>
+            {linkedAccounts.map((account) => (
+              <View key={account.id} style={styles.accountItem}>
+                <View style={styles.accountLeft}>
+                  <View style={styles.bankIcon}>
+                    <Text style={{ fontSize: 20 }}>🏦</Text>
+                  </View>
+                  <Text style={styles.accountName}>
+                    {account.bankName || 'Bank Account'} - {account.maskedNumber || account.accountNumber}
+                  </Text>
                 </View>
-                <Text style={styles.accountName}>{account}</Text>
+                {account.verified && (
+                  <View style={styles.verifiedBadge}>
+                    <Text style={styles.verifiedText}>Verified</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No linked bank accounts</Text>
+          </View>
+        )}
       </View>
 
       {/* Preferences */}
@@ -106,7 +174,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* Sign Out */}
-      <TouchableOpacity style={styles.signOutButton}>
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
 
@@ -294,5 +362,51 @@ const styles = StyleSheet.create({
     fontSize: typography.fontSize.xs,
     color: colors.gray500,
     paddingBottom: spacing.xl,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.fontSize.base,
+    color: colors.gray500,
+  },
+  loadingSection: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    backgroundColor: colors.platformWhite,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.canvas,
+    padding: spacing.xl,
+  },
+  errorText: {
+    fontSize: typography.fontSize.lg,
+    fontWeight: typography.fontWeight.semibold,
+    color: colors.platformInk,
+    marginBottom: spacing.sm,
+  },
+  errorSubtext: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray500,
+    textAlign: 'center',
+  },
+  emptyState: {
+    padding: spacing.xl,
+    alignItems: 'center',
+    backgroundColor: colors.platformWhite,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.borderColor,
+  },
+  emptyText: {
+    fontSize: typography.fontSize.sm,
+    color: colors.gray500,
   },
 });
